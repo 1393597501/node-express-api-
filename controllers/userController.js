@@ -1,25 +1,65 @@
 // const dbconfig = require('../util/dbconfig');
+const Core = require('@alicloud/pop-core');
+const config = require('../util/aliconfig');
+
+let client = new Core(config.alicloud);   
+let requestOption = {
+    method: 'POST'
+  };
 function rand(min,max){
     return Math.floor(Math.random()*(max-min)) + min
 }
 validatePhoneCode = [];
-let = sendCodeP = (phone) =>{
-    validatePhoneCode.map(v=>{
-
-        if(phone == v.phone){
-               return true 
-        }
-    })
-    return false
+let sendCodeP = (phone) =>{
+    for(var item of validatePhoneCode){
+        if(phone == item.phone){
+            return true 
+     }
+     return false
+    }
 }
-let = findCodeAndPhone = (phone,code) =>{
-    validatePhoneCode.map(v=>{
-        if(phone == v.phone&&code == v.code){
+let findCodeAndPhone = (phone,code) =>{
+    for(var item of validatePhoneCode){
+        if(phone == item.phone&&code == item.code){
             return 'login' 
+     }
+     return 'error'
+    }
+};
+
+sendCoreCode = (req,res) =>{
+    let phone = req.query.phone;
+    let code = rand(1000,9999);
+    var params = {
+        "RegionId": "cn-hangzhou",
+        "PhoneNumbers": phone,
+        "SignName":"变美app",
+        "TemplateCode":"SMS_200721240",
+        "TemplateParam": JSON.stringify({"code":code})
+      }
+    
+      client.request('SendSms', params, requestOption).then((result) => {
+        console.log("result:",result);
+        if(result.Code == "ok"){
+            res.send({
+                "code":200,
+                "msg":'发送成功'
+            })
+            validatePhoneCode.push({
+                'phone':phone,
+                'code':code
+            });
+            console.log("code：",code)
+        }else{
+            res.send({
+                "code":200,
+                "msg":"发送失败"
+            })
         }
-    })
-    return 'error'
+
+      })
 }
+
 //模拟验证码发送接口
 sendCode = (req,res) =>{
     let phone = req.query.phone;
@@ -70,5 +110,6 @@ codePhoneLogin = (req,res)=>{
 }
 module.exports = {
     sendCode,
+    sendCoreCode,
     codePhoneLogin
 }
