@@ -2,8 +2,8 @@
 const Core = require('@alicloud/pop-core');
 const config = require('../util/aliconfig');
 
-let client = new Core(config.alicloud);   
-let requestOption = {
+const client = new Core(config.alicloud);
+const requestOption = {
     method: 'POST'
   };
 function rand(min,max){
@@ -21,11 +21,12 @@ let sendCodeP = (phone) =>{
 let findCodeAndPhone = (phone,code) =>{
     for(var item of validatePhoneCode){
         if(phone == item.phone&&code == item.code){
-            return 'login' 
+            return 'login'
      }
      return 'error'
     }
 };
+
 
 sendCoreCode = (req,res) =>{
     let phone = req.query.phone;
@@ -37,14 +38,13 @@ sendCoreCode = (req,res) =>{
         "TemplateCode":"SMS_200721240",
         "TemplateParam": JSON.stringify({"code":code})
       }
-    
+
       client.request('SendSms', params, requestOption).then((result) => {
-        console.log("result:",result);
         if(result.Code == "ok"){
             res.send({
                 "code":200,
                 "msg":'发送成功'
-            })
+            });
             validatePhoneCode.push({
                 'phone':phone,
                 'code':code
@@ -73,14 +73,14 @@ sendCode = (req,res) =>{
     validatePhoneCode.push({
         'phone':phone,
         'code':code
-    })
+    });
     
     console.log('code:',code,'validatePhoneCode:',validatePhoneCode);
     res.send({
         'code':200,
         'msg':'发送成功'
     })
-}
+};
 //验证码登录
 codePhoneLogin = (req,res)=>{
     let {phone,code} = req.query;
