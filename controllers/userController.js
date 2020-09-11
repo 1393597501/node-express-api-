@@ -17,7 +17,7 @@ let sendCodeP = (phone) =>{
      }
      return false
     }
-}
+};
 let findCodeAndPhone = (phone,code) =>{
     for(var item of validatePhoneCode){
         if(phone == item.phone&&code == item.code){
@@ -112,4 +112,4 @@ module.exports = {
     sendCode,
     sendCoreCode,
     codePhoneLogin
-}
+};
