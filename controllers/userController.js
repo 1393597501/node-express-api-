@@ -1,93 +1,91 @@
-// const dbconfig = require('../util/dbconfig');
-const Core = require('@alicloud/pop-core');
-const config = require('../util/aliconfig');
+const nodemailer = require('nodemailer'); //引入依赖
 
-const client = new Core(config.alicloud);
-const requestOption = {
-    method: 'POST'
-  };
+/**
+ * 发送邮件
+ * @param {string} to 收件方邮箱
+ * @param {string} title 内容标题
+ * @param {string} content 邮件内容
+ * @param {Function} callback 回调函数（内置参数）
+ *
+ */
 function rand(min,max){
     return Math.floor(Math.random()*(max-min)) + min
 }
-validatePhoneCode = [];
-let sendCodeP = (phone) =>{
-    for(var item of validatePhoneCode){
-        if(phone == item.phone){
-            return true 
-     }
-     return false
+validateMailCode = [];
+let sendCodeM = (email) =>{
+    for(var item of validateMailCode){
+        if(email == item.email){
+            return true
+        }
+        return false
     }
 };
-let findCodeAndPhone = (phone,code) =>{
-    for(var item of validatePhoneCode){
-        if(phone == item.phone&&code == item.code){
+let findCodeAndEmail = (email,code) =>{
+    for(var item of validateMailCode){
+        if(email == item.email&&code == item.code){
             return 'login'
-     }
-     return 'error'
+        }
+        return 'error'
     }
 };
-
-
-sendCoreCode = (req,res) =>{
-    let phone = req.query.phone;
+sendCoreMail = (req,res) => {
+    const email = req.query.email;
     let code = rand(1000,9999);
-    var params = {
-        "RegionId": "cn-hangzhou",
-        "PhoneNumbers": phone,
-        "SignName":"变美app",
-        "TemplateCode":"SMS_200721240",
-        "TemplateParam": JSON.stringify({"code":code})
-      }
+    /**
+     * 详细配置文件地址： node_modules/lib/well-known/services
+     */
+    let transporter = nodemailer.createTransport({
+        host: 'smtp.163.com',
+        port: 465,
+        secure: true,
+        auth: {
+            user: '15728325635@163.com', //发送方邮箱
+            pass: 'KRVVPEWPTRWECPXK' //发送方邮箱的授权码,一般去邮箱设置里面找，应该可以找到
+        }
+    });
 
-      client.request('SendSms', params, requestOption).then((result) => {
-        if(result.Code == "ok"){
+    let info = {
+        from: '15728325635@163.com',//发送方邮箱
+        // 收件人
+        to:email,//前台传过来的邮箱
+        subject: '接受凭证',//邮箱主题
+        text:  `你的验证码${code}`//发送验证码
+        //html: '<h1>这里内容</h1>'，text和html任选其一即可
+    };
+    //发送邮件
+    transporter.sendMail(info,(err,data) => {
+        if(err){
+            console.log('err:',err);
             res.send({
-                "code":200,
-                "msg":'发送成功'
+                'code':400,
+                'msg':'发送失败'
             });
-            validatePhoneCode.push({
-                'phone':phone,
+            return
+        }else{
+            if(sendCodeM(email)){
+                res.send({
+                    'code':400,
+                    'msg':'我考！怎么又发验证码a '
+                })
+            }
+            res.send({
+                'code':200,
+                'data':data
+            });
+            validateMailCode.push({
+                'email':email,
                 'code':code
             });
-            console.log("code：",code)
-        }else{
-            res.send({
-                "code":200,
-                "msg":"发送失败"
-            })
         }
-
-      })
-}
-
-//模拟验证码发送接口
-sendCode = (req,res) =>{
-    let phone = req.query.phone;
-    if(sendCodeP(phone)){
-        res.send({
-            'code':400,
-            'msg':'我考！怎么又发验证码'
-        })
-    }
-    let code = rand(1000,9999);
-    validatePhoneCode.push({
-        'phone':phone,
-        'code':code
-    });
-    
-    console.log('code:',code,'validatePhoneCode:',validatePhoneCode);
-    res.send({
-        'code':200,
-        'msg':'发送成功'
     })
 };
 //验证码登录
 codePhoneLogin = (req,res)=>{
-    let {phone,code} = req.query;
+    let {email,code} = req.query;
     //该手机号是否发送过验证码
-    if(sendCodeP(phone)){
+    if(sendCodeM(email)){
         //验证码和手机号是否匹配
-       let status = findCodeAndPhone(phone,code);
+       let status = findCodeAndEmail(email,code);
        if(status=='login'){
             //登录成功
             //登录成功之后的操作
@@ -109,7 +107,6 @@ codePhoneLogin = (req,res)=>{
     }
 }
 module.exports = {
-    sendCode,
-    sendCoreCode,
+    sendCoreMail,
     codePhoneLogin
 };
