@@ -11,7 +11,7 @@ module.exports = {
     //数据库链接,使用mysql的连接池的链接方式
     //连接池对象
     sqlConnect:function(sql,sqlArr,callBack){
-        var pool = mysql.createPool(this.config)
+        const pool = mysql.createPool(this.config);
         pool.getConnection((err,conn)=>{
             if(err){
                 return console.log('连接失败');

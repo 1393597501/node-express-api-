@@ -28,56 +28,88 @@ let findCodeAndEmail = (email,code) =>{
         return 'error'
     }
 };
+
 sendCoreMail = (req,res) => {
     const email = req.query.email;
     let code = rand(1000,9999);
-    /**
-     * 详细配置文件地址： node_modules/lib/well-known/services
-     */
-    let transporter = nodemailer.createTransport({
-        host: 'smtp.163.com',
-        port: 465,
-        secure: true,
-        auth: {
-            user: '15728325635@163.com', //发送方邮箱
-            pass: 'KRVVPEWPTRWECPXK' //发送方邮箱的授权码,一般去邮箱设置里面找，应该可以找到
-        }
-    });
+    let reg = /^\w[-\w.+]*@(163)\.+com$/;
+    let regq = /^\w[-\w.+]*@(qq)\.+com$/;
+    let transporter,info;
 
-    let info = {
-        from: '15728325635@163.com',//发送方邮箱
-        // 收件人
-        to:email,//前台传过来的邮箱
-        subject: '接受凭证',//邮箱主题
-        text:  `你的验证码${code}`//发送验证码
-        //html: '<h1>这里内容</h1>'，text和html任选其一即可
-    };
-    //发送邮件
+
+
+    if(sendCodeM(email)){
+        res.send({
+            'code':400,
+            'msg':'我考！怎么又发验证码啊'
+        });
+        return
+    }
+    if (reg.test(email)){
+        /**
+         * 详细配置文件地址： node_modules/lib/well-known/services
+         */
+         transporter = nodemailer.createTransport({
+            host: 'smtp.163.com',
+            port: 465,
+            secure: true,
+            auth: {
+                user: '15728325635@163.com', //发送方邮箱
+                pass: 'KRVVPEWPTRWECPXK' //发送方邮箱的授权码,一般去邮箱设置里面找，应该可以找到
+            }
+        });
+         info = {
+            from: '15728325635@163.com',//发送方邮箱
+            // 收件人
+            to:email,//前台传过来的邮箱
+            subject: '接受凭证',//邮箱主题
+            text:  `你的验证码${code}`//发送验证码
+            //html: '<h1>这里内容</h1>'，text和html任选其一即可
+        };
+        //发送邮件
+    }else if (regq.test(email)){
+        /**
+         * 详细配置文件地址： node_modules/lib/well-known/services
+         */
+         transporter = nodemailer.createTransport({
+            host:"smtp.qq.com", //qq smtp服务器地址
+            secureConnection:false, //是否使用安全连接，对https协议的
+            port: 465,
+            auth: {
+                user: '1393597501@qq.com', //发送方邮箱
+                pass: 'hwmkvdccqtwuhhig' //发送方邮箱的授权码,一般去邮箱设置里面找，应该可以找到
+            }
+        });
+         info = {
+            from: '1393597501@qq.com',//发送方邮箱
+            // 收件人
+            to:email,//前台传过来的邮箱
+            subject: '接受凭证',//邮箱主题
+            text:  `你的验证码${code}`//发送验证码
+            //html: '<h1>这里内容</h1>'，text和html任选其一即可
+        };
+    }else {
+       console.log('发送邮箱验证出问题！')
+    }
     transporter.sendMail(info,(err,data) => {
         if(err){
             console.log('err:',err);
-            res.send({
+             res.send({
                 'code':400,
                 'msg':'发送失败'
             });
-            return
         }else{
-            if(sendCodeM(email)){
                 res.send({
-                    'code':400,
-                    'msg':'我考！怎么又发验证码a '
-                })
+                    'code':200,
+                    'data':data
+                });
+                validateMailCode.push({
+                    'email':email,
+                    'code':code
+                });
             }
-            res.send({
-                'code':200,
-                'data':data
-            });
-            validateMailCode.push({
-                'email':email,
-                'code':code
-            });
-        }
-    })
+    });
+    console.log("validateMailCode:",validateMailCode)
 };
 //验证码登录
 codePhoneLogin = (req,res)=>{
