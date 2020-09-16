@@ -21,5 +21,29 @@ module.exports = {
         //释放连接
         conn.release();
         })
+
+
+    },
+    SySqlConnect:function (sySql,sqlArr) {
+        return new Promise((resolve,reject)=>{
+            const pool = mysql.createPool(this.config);
+            pool.getConnection((err,conn)=>{
+                if(err){
+                    return console.log('连接失败');
+                }
+                //事件驱动回调
+                conn.query(sql,sqlArr,(err,data)=>{
+                    if (err){
+                        reject(err)
+                    } else {
+                        resolve(data)
+                    }
+                });
+                //释放连接
+                conn.release();
+            })
+        }).catch((err)=>{
+            console.log(err)
+        })
     }
 }

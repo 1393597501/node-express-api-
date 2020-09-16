@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer'); //引入依赖
-
+const dbConfig = require('../util/dbconfig');
 /**
  * 发送邮件
  * @param {string} to 收件方邮箱
@@ -12,14 +12,14 @@ function rand(min,max){
     return Math.floor(Math.random()*(max-min)) + min
 }
 validateMailCode = [];
-let sendCodeM = (email) =>{
-    for(var item of validateMailCode){
-        if(email == item.email){
-            return true
-        }
-        return false
-    }
-};
+// let sendCodeM = (email) =>{
+//     for(var item of validateMailCode){
+//         if(email == item.email){
+//             return true
+//         }
+//         return false
+//     }
+// };
 let findCodeAndEmail = (email,code) =>{
     for(var item of validateMailCode){
         if(email == item.email&&code == item.code){
@@ -35,16 +35,6 @@ sendCoreMail = (req,res) => {
     let reg = /^\w[-\w.+]*@(163)\.+com$/;
     let regq = /^\w[-\w.+]*@(qq)\.+com$/;
     let transporter,info;
-
-
-
-    if(sendCodeM(email)){
-        res.send({
-            'code':400,
-            'msg':'我考！怎么又发验证码啊'
-        });
-        return
-    }
     if (reg.test(email)){
         /**
          * 详细配置文件地址： node_modules/lib/well-known/services
@@ -91,6 +81,13 @@ sendCoreMail = (req,res) => {
     }else {
        console.log('发送邮箱验证出问题！')
     }
+    // if(sendCodeM(email)){
+    //     res.send({
+    //         'code':400,
+    //         'msg':'我考！怎么又发验证码啊'
+    //     });
+    //     return
+    // }
     transporter.sendMail(info,(err,data) => {
         if(err){
             console.log('err:',err);
@@ -98,21 +95,75 @@ sendCoreMail = (req,res) => {
                 'code':400,
                 'msg':'发送失败'
             });
+             return
         }else{
-                res.send({
-                    'code':200,
-                    'data':data
-                });
-                validateMailCode.push({
-                    'email':email,
-                    'code':code
-                });
-            }
+            res.send({
+                'code':200,
+                'data':data
+            });
+            validateMailCode.push({
+                'email':email,
+                'code':code
+            });
+            console.log("validateMailCode:",validateMailCode)
+        }
     });
-    console.log("validateMailCode:",validateMailCode)
 };
+let emailLoginBind = async (email) =>{
+    let sql = "select * from user where username=? or email = ?";
+    let sqlArr = [email,email];
+    let res = await dbConfig.SySqlConnect(sql,sqlArr);
+    if (res.length){
+        res[0].userInfo = await getUserInfo(res[0].id);
+        return res
+    } else {
+            //用户第一次登录.绑定表 //用户注册
+        let res = await regUser(email);
+            //获取用户详情
+        res[0].userInfo = await getUserInfo(res[0].id);
+        return res
+    }
+};
+//用户注册
+    let regUser = async (email) =>{
+        let userpic = 'https://upload.jianshu.io/users/upload_avatars/1447174/5b2925ac-99cb-4efc-b3b5-826eb4895273.jpg?imageMogr2/auto-orient/strip|imageView2/1/w/240/h/240';
+        let sql = 'insert into user(username,userpic,email,create_time) value(?,?,?,?)';
+        let sqlArr = [email,userpic,email,(new Date()).valueOf()];
+        let res = await dbConfig.SySqlConnect(sql,sqlArr);
+        if (res.affectedRows == 1){
+            //执行成功获取用户信息
+            //获取用户信息的方法
+            let user = await getUser();
+            //创建用户副表
+            let userinfo = '/do';
+            if (userinfo.affectedRows == 1){
+                return user
+            } else {
+                return false
+            }
+        }else {
+                return false
+        }
+    };
+//获取用户信息
+    let getUser = (username)=>{
+      let sql = 'sqlect * from user where id=? or email=? or username=?';
+      let sqlArr = [username,username,username];
+      return dbConfig.SySqlConnect(sql,sqlArr);
+    };
+    let createUserInfo = (user_id)=>{
+      let sql = 'insert into userinfo(user_id,age,sex,job) values(?,?,?,?)';
+      let sqlArr = [user_id,18,2,'未设置'];
+      return dbConfig.SySqlConnect(sql,sqlArr);
+    };
+    let getUserInfo = (user_id)=>{
+        let sql = `select age,sex,job,path,birthday from userinfo where user_id=?`;
+        let sqlArr = [user_id];
+        return dbConfig.SySqlConnect(sql,sqlArr);
+    };
+
 //验证码登录
-codePhoneLogin = (req,res)=>{
+codeEmailLogin = (req,res)=>{
     let {email,code} = req.query;
     //该手机号是否发送过验证码
     if(sendCodeM(email)){
@@ -137,8 +188,8 @@ codePhoneLogin = (req,res)=>{
             'msg':'未发送验证码'
         })
     }
-}
+};
 module.exports = {
     sendCoreMail,
-    codePhoneLogin
+    codeEmailLogin
 };
