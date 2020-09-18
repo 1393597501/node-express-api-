@@ -12,14 +12,14 @@ function rand(min,max){
     return Math.floor(Math.random()*(max-min)) + min
 }
 validateMailCode = [];
-// let sendCodeM = (email) =>{
-//     for(var item of validateMailCode){
-//         if(email == item.email){
-//             return true
-//         }
-//         return false
-//     }
-// };
+let sendCodeM = (email) =>{
+    for(var item of validateMailCode){
+        if(email == item.email){
+            return true
+        }
+        return false
+    }
+};
 let findCodeAndEmail = (email,code) =>{
     for(var item of validateMailCode){
         if(email == item.email&&code == item.code){
@@ -81,13 +81,13 @@ sendCoreMail = (req,res) => {
     }else {
        console.log('发送邮箱验证出问题！')
     }
-    // if(sendCodeM(email)){
-    //     res.send({
-    //         'code':400,
-    //         'msg':'我考！怎么又发验证码啊'
-    //     });
-    //     return
-    // }
+    if(sendCodeM(email)){
+        res.send({
+            'code':400,
+            'msg':'我考！怎么又发验证码啊'
+        });
+        return
+    }
     transporter.sendMail(info,(err,data) => {
         if(err){
             console.log('err:',err);
@@ -163,7 +163,7 @@ let emailLoginBind = async (email) =>{
     };
 
 //验证码登录
-codeEmailLogin = (req,res)=>{
+codeEmailLogin = async (req,res)=>{
     let {email,code} = req.query;
     //该手机号是否发送过验证码
     if(sendCodeM(email)){
@@ -172,9 +172,11 @@ codeEmailLogin = (req,res)=>{
        if(status=='login'){
             //登录成功
             //登录成功之后的操作
+           let user = await emailLoginBind(email);
             res.send({
                 'code':200,
-                'msg':'登录成功'
+                'msg':'登录成功',
+                'data':user[0]
             })
        }else if(status=='error'){
         res.send({

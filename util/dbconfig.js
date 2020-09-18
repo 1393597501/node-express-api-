@@ -24,7 +24,7 @@ module.exports = {
 
 
     },
-    SySqlConnect:function (sySql,sqlArr) {
+    SySqlConnect:function (sql,sqlArr) {
         return new Promise((resolve,reject)=>{
             const pool = mysql.createPool(this.config);
             pool.getConnection((err,conn)=>{
